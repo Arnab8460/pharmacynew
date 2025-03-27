@@ -1359,6 +1359,7 @@ class PaymentController extends Controller
         if ($studentregister) {
             $feesType = $request->fees_type;
             $gender = $studentregister->s_gender;
+            $isKanyashree = $studentregister->is_kanyashree;
 
             $fee = Pharmacyfees::where('fees_type', $feesType)
                     ->where('gender', $gender)
