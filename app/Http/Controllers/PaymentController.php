@@ -13,6 +13,7 @@ use App\Models\PaymentTransaction;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Pharmacyfees;
+use DateTime;
 
 class PaymentController extends Controller
 {
@@ -1251,9 +1252,11 @@ class PaymentController extends Controller
     //AD
     // public function registerpayment(Request $request)
     // {
-    //     $trans_time = date('Y-m-d H:i:s');
+    //     $trans_time = now();
+
     //     $validated = Validator::make($request->all(), [
-    //         'student_id' => ['required'],
+    //     'student_id' => ['required'],
+    //         'fees_type' => ['required']  
     //     ]);
 
     //     if ($validated->fails()) {
@@ -1262,9 +1265,9 @@ class PaymentController extends Controller
     //             'message' => $validated->errors()
     //         ]);
     //     }
-
     //     $merchIdVal = env('SBI_MERCHANT_ID');
     //     $actionUrl = env('SBI_PAYMENT_API');
+    //     // Random Order ID Generation
     //     $orderid = '';
     //     for ($i = 0; $i < 10; $i++) {
     //         $d = rand(1, 30) % 2;
@@ -1276,144 +1279,143 @@ class PaymentController extends Controller
     //     $success_url = "{$base_url}register_success";
     //     $fail_url = "{$base_url}register_fail";
     //     $key = env('SBI_PAYMENT_KEY');
-    //     $other = "REGISTERFEES_{$request->student_id}";
+    //     $other = strtoupper($request->fees_type) . "_{$request->student_id}";
     //     $marid = '5';
     //     $merchant_order_num = $orderid;
-        
-    //     $studentregister=RegisterStudent::where('s_id', $request->student_id)->first();
-    //     if ($studentregister) {
-    //         $total_amount = match ($studentregister->s_gender) {
-    //             'MALE'   => env('REGISTER_FEES'),
-    //             'FEMALE' => env('REGISTER_FEMALE_FEES'),
-    //             default  => env('REGISTER_FEES')
-    //         };
-    //         $requestParameter = "{$merchIdVal}|DOM|IN|INR|$total_amount|$other|$success_url|$fail_url|SBIEPAY|$merchant_order_num|$marid|NB|ONLINE|ONLINE";
-    //         $EncryptTrans = encryptedString($requestParameter, $key);
-    //         $studentregister->update([
-    //             'updated_at' => now(),
-    //         ]);
-    //         PaymentTransaction::create([
-    //             'order_id' => $orderid,
-    //             'pmnt_modified_by' => $request->student_id,
-    //             'pmnt_stud_id' => $request->student_id,
-    //             'pmnt_created_on' => $trans_time,
-    //             'trans_amount' => intval($total_amount),
-    //             'pmnt_pay_type' => 'REGISTERFEES'
-    //         ]);
-    
-    //         auditTrail($request->student_id, "Payment initiated for order ID {$orderid}");
-    //         studentActivite($request->student_id, "Payment initiated for order ID {$orderid}");
-    
-    //         return response()->json([
-    //             'error' => false,
-    //             'message' => 'Payment Data',
-    //             'EncryptTrans' => $EncryptTrans,
-    //             'merchIdVal' => $merchIdVal,
-    //             'actionUrl' => $actionUrl
-    //         ]);
-    //     }else{
+
+    //     $studentregister = RegisterStudent::where('s_id', $request->student_id)->first();
+    //     if (!$studentregister) {
     //         return response()->json([
     //             'error' => true,
     //             'message' => 'Student Not Found',
     //         ]);
-    //     }  
+    //     }
+    //     $feesType = strtolower($request->fees_type);
+    //     $gender = strtolower($studentregister->s_gender) ?? 'male'; 
+
+    //     $fee = Pharmacyfees::where('fees_type', $feesType)
+    //         ->where('gender', $gender)
+    //         ->first();
+    //     if(!$fee){
+    //         $fee = Pharmacyfees::where('fees_type', $feesType)
+    //                 ->where('gender', 'male')
+    //                 ->first();
+    //     }
+    //     $total_amount = $fee ? $fee->fees_amount : 0;
+    //     // Encryption and Payment Processing
+    //     $requestParameter = "{$merchIdVal}|DOM|IN|INR|$total_amount|$other|$success_url|$fail_url|SBIEPAY|$merchant_order_num|$marid|NB|ONLINE|ONLINE";
+    //     $EncryptTrans = encryptedString($requestParameter, $key);
+    //     $studentregister->update(['updated_at' => now()]);
+
+    //     PaymentTransaction::create([
+    //         'order_id' => $orderid,
+    //         'pmnt_modified_by' => $request->student_id,
+    //         'pmnt_stud_id' => $request->student_id,
+    //         'pmnt_created_on' => $trans_time,
+    //         'trans_amount' => intval($total_amount),
+    //         'pmnt_pay_type' => strtoupper($request->fees_type)
+    //     ]);
+    //     auditTrail($request->student_id, "Payment initiated for {$request->fees_type} - Order ID {$orderid}");
+    //     studentActivite($request->student_id, "Payment initiated for {$request->fees_type} - Order ID {$orderid}");
+
+    //     return response()->json([
+    //         'error' => false,
+    //         'message' => 'Payment Data',
+    //         'EncryptTrans' => $EncryptTrans,
+    //         'merchIdVal' => $merchIdVal,
+    //         'actionUrl' => $actionUrl,
+    //         'fees_amount' => $total_amount
+    //     ]);
     // }
-    
     public function registerpayment(Request $request)
     {
-        $trans_time = date('Y-m-d H:i:s');
-
+        $trans_time = now();
         $validated = Validator::make($request->all(), [
-            'student_id' => ['required'],
-            'fees_type' => ['required']  
+            'student_id' => ['required', 'integer'],
+            'fees_type' => ['required', 'string']
         ]);
-
+    
         if ($validated->fails()) {
             return response()->json([
                 'error' => true,
                 'message' => $validated->errors()
             ]);
         }
-
+    
+        // Environment variables
         $merchIdVal = env('SBI_MERCHANT_ID');
         $actionUrl = env('SBI_PAYMENT_API');
-
-        // Random Order ID Generation
-        $orderid = '';
-        for ($i = 0; $i < 10; $i++) {
-            $d = rand(1, 30) % 2;
-            $d = $d ? chr(rand(65, 90)) : chr(rand(48, 57));
-            $orderid .= $d;
-        }
-
+        $key = env('SBI_PAYMENT_KEY');
+    
+        // Generate random Order ID
+        $orderid = strtoupper(bin2hex(random_bytes(5)));
+    
+        // Payment URLs
         $base_url = env('APP_URL') . '/payment/';
         $success_url = "{$base_url}register_success";
         $fail_url = "{$base_url}register_fail";
-        $key = env('SBI_PAYMENT_KEY');
+    
         $other = strtoupper($request->fees_type) . "_{$request->student_id}";
         $marid = '5';
         $merchant_order_num = $orderid;
-
-        $studentregister = RegisterStudent::where('s_id', $request->student_id)->first();
-
-        if ($studentregister) {
-            $feesType = $request->fees_type;
-            $gender = $studentregister->s_gender;
-            $isKanyashree = $studentregister->is_kanyashree;
-
-            $fee = Pharmacyfees::where('fees_type', $feesType)
-                    ->where('gender', $gender)
-                    ->first();
-
-            // if (!$fee) {
-            //     $fee = Pharmacyfees::where('fees_type', $feesType)
-            //         ->where('gender', 'ALL')
-            //         ->first();
-            // }
-            if (!$fee) {
-                $fee = Pharmacyfees::where('fees_type', $feesType)
-                    ->where('gender', 'MALE')
-                    ->first();
-            }
-            // dd($fee);
-            $total_amount = $fee ? $fee->fees_amount : 0;
-
-            // Encryption and Payment Processing
-            $requestParameter = "{$merchIdVal}|DOM|IN|INR|$total_amount|$other|$success_url|$fail_url|SBIEPAY|$merchant_order_num|$marid|NB|ONLINE|ONLINE";
-            $EncryptTrans = encryptedString($requestParameter, $key);
-
-            $studentregister->update(['updated_at' => now()]);
-
-            PaymentTransaction::create([
-                'order_id' => $orderid,
-                'pmnt_modified_by' => $request->student_id,
-                'pmnt_stud_id' => $request->student_id,
-                'pmnt_created_on' => $trans_time,
-                'trans_amount' => intval($total_amount),
-                'pmnt_pay_type' => strtoupper($request->fees_type)
-            ]);
-
-            auditTrail($request->student_id, "Payment initiated for {$request->fees_type} - Order ID {$orderid}");
-            studentActivite($request->student_id, "Payment initiated for {$request->fees_type} - Order ID {$orderid}");
-
-            return response()->json([
-                'error' => false,
-                'message' => 'Payment Data',
-                'EncryptTrans' => $EncryptTrans,
-                'merchIdVal' => $merchIdVal,
-                'actionUrl' => $actionUrl,
-                'fees_amount' => $total_amount
-            ]);
-
-        } else {
+        $student = RegisterStudent::where('s_id', $request->student_id)->first();
+    
+        if (!$student) {
             return response()->json([
                 'error' => true,
-                'message' => 'Student Not Found',
+                'message' => 'Student Not Found'
             ]);
         }
+    
+        $feesType = strtolower($request->fees_type);
+        $gender = strtolower($student->s_gender ?? 'male');  
+    
+        $fee = Pharmacyfees::whereRaw('TRIM(LOWER(fees_type)) = ?', [$feesType])
+            ->where('gender', 'ILIKE', $gender)
+            ->first();
+    
+        // Fallback to male if gender-specific fee not found
+        if (!$fee) {
+            $fee = Pharmacyfees::whereRaw('TRIM(LOWER(fees_type)) = ?', [$feesType])
+                ->where('gender', 'ILIKE', 'male')
+                ->first();
+        }
+    
+        $total_amount = $fee ? $fee->fees_amount : 0;
+    
+        if (!$fee) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Fee not found for this type'
+            ]);
+        }
+    
+        $requestParameter = "{$merchIdVal}|DOM|IN|INR|$total_amount|$other|$success_url|$fail_url|SBIEPAY|$merchant_order_num|$marid|NB|ONLINE|ONLINE";
+        $EncryptTrans = encryptedString($requestParameter, $key);
+        $student->update(['updated_at' => now()]);
+    
+        PaymentTransaction::create([
+            'order_id' => $orderid,
+            'pmnt_modified_by' => $request->student_id,
+            'pmnt_stud_id' => $request->student_id,
+            'pmnt_created_on' => $trans_time,
+            'trans_amount' => intval($total_amount),
+            'pmnt_pay_type' => strtoupper($request->fees_type),
+        ]);
+    
+        auditTrail($request->student_id, "Payment initiated for {$request->fees_type} - Order ID {$orderid}");
+        studentActivite($request->student_id, "Payment initiated for {$request->fees_type} - Order ID {$orderid}");
+    
+        return response()->json([
+            'error' => false,
+            'message' => 'Payment Data',
+            'EncryptTrans' => $EncryptTrans,
+            'merchIdVal' => $merchIdVal,
+            'actionUrl' => $actionUrl,
+            'fees_amount' => $total_amount
+        ]);
     }
-
-
+    
     public function registerpaymentSuccess(Request $request)
     {
         $key = env('SBI_PAYMENT_KEY');

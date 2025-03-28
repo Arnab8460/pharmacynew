@@ -57,4 +57,9 @@ class RegisterStudent extends Model
     {
         return $this->hasMany(StudentChoice::class, "ch_stu_id", "s_id");
     }
+    public function feesByType($feesType)
+    {
+        return $this->hasOne(PharmacyFees::class, 'gender', 's_gender')
+            ->where('fees_type', $feesType);
+    }
 }
