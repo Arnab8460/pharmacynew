@@ -1621,8 +1621,6 @@ class CommonController extends Controller
             );
             return response(json_encode($reponse), 404);
         }
-
-
     }
     public function getregisterdata($id)
     {
