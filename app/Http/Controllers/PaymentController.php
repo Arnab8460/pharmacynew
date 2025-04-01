@@ -1348,8 +1348,12 @@ class PaymentController extends Controller
         $key = env('SBI_PAYMENT_KEY');
     
         // Generate random Order ID
-        $orderid = strtoupper(bin2hex(random_bytes(5)));
-    
+        $orderid = '';
+        for ($i = 0; $i < 10; $i++) {
+            $d = rand(1, 30) % 2;
+            $d = $d ? chr(rand(65, 90)) : chr(rand(48, 57));
+            $orderid .= $d;
+        }
         // Payment URLs
         $base_url = env('APP_URL') . '/payment/';
         $success_url = "{$base_url}register_success";
