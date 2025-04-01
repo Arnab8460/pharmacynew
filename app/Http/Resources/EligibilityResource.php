@@ -17,8 +17,8 @@ class EligibilityResource extends JsonResource
         return [
             'id'           =>  $this->id,
             'name'         =>  $this->elgb_exam,
-            'course_code'            =>  $this->course_code,
-            'code'  =>  $this->elgb_exam_short_code,
+            'course_code'  =>  $this->course_code,
+            'code'         =>  $this->elgb_exam_short_code,
         ];
     }
 }
