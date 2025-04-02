@@ -30,14 +30,18 @@ Route::post('/spot-authenticate', [SpotAdmissionController::class, 'spotAthentic
 Route::post('/spot-otp-verification', [SpotAdmissionController::class, 'spotOtpVerification']);
 
 Route::prefix('master')->group(function () {
-    Route::post('/district-list', [CommonController::class, 'allDistricts']);
-    Route::post('/institute-stream-wise', [CommonController::class, 'allInstList']);
+    Route::post('/district-list/{state_code}/{user_type?}', [CommonController::class, 'allDistricts']);
+    Route::post('/institute-stream-wise/{user_type?}', [CommonController::class, 'allInstList']);
     Route::post('/institute-wise-stream', [CommonController::class, 'streamListinstListWise']);
     Route::post('/trade-list', [CommonController::class, 'streamList']);
-    Route::post('/state-list', [CommonController::class, 'allStates']);
+    Route::post('/state-list/{user_type?}', [CommonController::class, 'allStates']);
     Route::post('/religion-list', [CommonController::class, 'allReligions']);
     Route::post('/caste-list', [CommonController::class, 'allCastes']);
+    Route::post('/eligibility-list/{user_type?}', [CommonController::class, 'eligibility']);
+    Route::post('/eligibility-match',[CommonController::class, 'eligibilityMatch']);
+    Route::get('/subdivision-list/{dist_id?}/{user_type?}', [CommonController::class, 'allSubdivisions']);
 });
+ 
 
 Route::prefix('student')->group(function () {
     Route::get('/spot-college-list', [SpotAdmissionController::class, 'spotCollegeList']);
@@ -200,8 +204,7 @@ Route::get('test-seat', function () {
             ];
         })->sortBy('inst_code')->values();
 });
-Route::post('register_student', [CommonController::class, 'registerstudent']);
-Route::post('checkelegiblity', [CommonController::class, 'eligibility']);
+Route::post('register-student', [StudentController::class, 'registerstudent']);
 Route::get('getregisterdata/{id}',[CommonController::class,'getregisterdata']);
 Route::post('/register_pay-now', [PaymentController::class, 'registerpayment']);
 Route::get('/download-receipt/{trans_id}', [CommonController::class, 'downloadReceipt']);

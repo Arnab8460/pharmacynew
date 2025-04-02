@@ -14,6 +14,10 @@ use Illuminate\Http\Request;
 use App\Models\StudentChoice;
 use App\Models\RegisterStudent;
 use App\Models\PaymentTransaction;
+use App\Models\Subdivision;
+use App\Models\State;
+use App\Http\Resources\SubdivisionResource;
+use App\Http\Resources\StateResource;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TradeResource;
@@ -34,161 +38,578 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class CommonController extends Controller
 {
-    public function allDistricts(Request $request)
+    // public function allDistricts(Request $request, $state_code = null, $type = null)
+    // {
+    //     if($type = null){
+    //         if ($request->header('token')) {
+    //             $now    =   date('Y-m-d H:i:s');
+    //             $token_check = Token::where('t_token', '=', $request->header('token'))->where('t_expired_on', '>=', $now)->first();
+    //             if ($token_check) {  // check the token is expire or not
+    //                 $user_id = $token_check->t_user_id;
+    //                 $user_data = User::select('s_id')->where('s_id', $user_id)->first();
+    //                 $role_url_access_id = DB::table('pharmacy_auth_roles_permissions')->where('rp_role_id', 2)->pluck('rp_url_id');
+
+    //                 if (sizeof($role_url_access_id) > 0) {
+    //                     $urls = DB::table('pharmacy_auth_urls')->where('url_visible', 1)->whereIn('url_id', $role_url_access_id)->get()->toArray();
+    //                     $url_data = array_column($urls, 'url_name');
+    //                     if (in_array('district-list', $url_data)) { //check url has permission or not
+
+    //                         $district_list = District::orderBy('d_sort_order', 'ASC')->get();
+
+
+    //                         if (sizeof($district_list) > 0) {
+    //                             $reponse = array(
+    //                                 'error'     =>  false,
+    //                                 'message'   =>  'District found',
+    //                                 'count'     =>   sizeof($district_list),
+    //                                 'districts'  =>  DistrictResource::collection($district_list)
+    //                             );
+    //                             return response(json_encode($reponse), 200);
+    //                         } else {
+    //                             $reponse = array(
+    //                                 'error'     =>  true,
+    //                                 'message'   =>  'No district available'
+    //                             );
+    //                             return response(json_encode($reponse), 200);
+    //                         }
+    //                     } else {
+    //                         return response()->json([
+    //                             'error'     =>  true,
+    //                             'message'   =>   "Oops! you don't have sufficient permission"
+    //                         ], 401);
+    //                     }
+    //                 } else {
+    //                     return response()->json([
+    //                         'error'     =>  true,
+    //                         'message'   =>   "Oops! you don't have sufficient permission"
+    //                     ], 401);
+    //                 }
+    //             } else {
+    //                 return response()->json([
+    //                     'error'     =>  true,
+    //                     'message'   =>  'Unable to process your request due to invalid token'
+    //                 ], 401);
+    //             }
+    //         } 
+    //         else {
+    //             return response()->json([
+    //                 'error'     =>  true,
+    //                 'message'   =>  'Unable to process your request due to non availability of token'
+    //             ], 401);
+    //         }
+    //     }else{
+    //         if ($state_code) {
+    //             $district_list = District::with('state:state_id_pk,state_name')->where('state_id_fk', $state_code)->orderBy('d_id', 'DESC')->get();
+    //         } else {
+    //             $district_list = District::with('state:state_id_pk,state_name')->orderBy('d_id', 'DESC')->get();
+    //         }
+    //         if (sizeof($district_list) > 0) {
+    //             $reponse = array(
+    //                 'error'     =>  false,
+    //                 'message'   =>  'District found',
+    //                 'count'     =>   sizeof($district_list),
+    //                 'districts'  =>  DistrictResource::collection($district_list)
+    //             );
+    //             return response(json_encode($reponse), 200);
+    //         } else {
+    //             $reponse = array(
+    //                 'error'     =>  true,
+    //                 'message'   =>  'No district available'
+    //             );
+    //             return response(json_encode($reponse), 404);
+    //         }
+
+    //     }
+    // }
+    public function allDistricts(Request $request, $state_code = null,$type=null)
     {
-        if ($request->header('token')) {
-            $now    =   date('Y-m-d H:i:s');
-            $token_check = Token::where('t_token', '=', $request->header('token'))->where('t_expired_on', '>=', $now)->first();
-            if ($token_check) {  // check the token is expire or not
-                $user_id = $token_check->t_user_id;
-                $user_data = User::select('s_id')->where('s_id', $user_id)->first();
-                $role_url_access_id = DB::table('pharmacy_auth_roles_permissions')->where('rp_role_id', 2)->pluck('rp_url_id');
-
-                if (sizeof($role_url_access_id) > 0) {
-                    $urls = DB::table('pharmacy_auth_urls')->where('url_visible', 1)->whereIn('url_id', $role_url_access_id)->get()->toArray();
-                    $url_data = array_column($urls, 'url_name');
-                    if (in_array('district-list', $url_data)) { //check url has permission or not
-
-                        $district_list = District::orderBy('d_sort_order', 'ASC')->get();
-
-
-                        if (sizeof($district_list) > 0) {
-                            $reponse = array(
-                                'error'     =>  false,
-                                'message'   =>  'District found',
-                                'count'     =>   sizeof($district_list),
-                                'districts'  =>  DistrictResource::collection($district_list)
-                            );
-                            return response(json_encode($reponse), 200);
+        if($type=null){
+            if ($request->header('token')) {
+                $now    =   date('Y-m-d H:i:s');
+                $token_check = Token::where('t_token', '=', $request->header('token'))->where('t_expired_on', '>=', $now)->first();
+                if ($token_check) {  // check the token is expire or not
+                    $user_id = $token_check->t_user_id;
+                    $user_data = User::select('u_id', 'u_ref', 'u_role_id')->where('u_id', $user_id)->first();
+                    $role_url_access_id = DB::table('wbscte_other_diploma_auth_roles_permissions')->where('rp_role_id', $user_data->u_role_id)->pluck('rp_url_id');
+    
+                    if (sizeof($role_url_access_id) > 0) {
+                        $urls = DB::table('wbscte_other_diploma_auth_urls')->where('url_visible', 1)->whereIn('url_id', $role_url_access_id)->get()->toArray();
+                        $url_data = array_column($urls, 'url_name');
+                        if (in_array('district-list', $url_data)) { //check url has permission or not
+                            if ($state_code) {
+    
+                                $district_list = District::with('state:state_id_pk,state_name')->where('state_id_fk', $state_code)->orderBy('d_id', 'DESC')->get();
+                            } else {
+                                $district_list = District::with('state:state_id_pk,state_name')->orderBy('d_id', 'DESC')->get();
+                            }
+                            if (sizeof($district_list) > 0) {
+                                $reponse = array(
+                                    'error'     =>  false,
+                                    'message'   =>  'District found',
+                                    'count'     =>   sizeof($district_list),
+                                    'districts'  =>  DistrictResource::collection($district_list)
+                                );
+                                return response(json_encode($reponse), 200);
+                            } else {
+                                $reponse = array(
+                                    'error'     =>  true,
+                                    'message'   =>  'No district available'
+                                );
+                                return response(json_encode($reponse), 404);
+                            }
                         } else {
-                            $reponse = array(
+                            return response()->json([
                                 'error'     =>  true,
-                                'message'   =>  'No district available'
-                            );
-                            return response(json_encode($reponse), 200);
+                                'message'   =>   "Oops! you don't have sufficient permission"
+                            ], 403);
                         }
                     } else {
                         return response()->json([
                             'error'     =>  true,
                             'message'   =>   "Oops! you don't have sufficient permission"
-                        ], 401);
+                        ], 403);
                     }
                 } else {
                     return response()->json([
                         'error'     =>  true,
-                        'message'   =>   "Oops! you don't have sufficient permission"
+                        'message'   =>  'Unable to process your request due to invalid token'
                     ], 401);
                 }
             } else {
                 return response()->json([
                     'error'     =>  true,
-                    'message'   =>  'Unable to process your request due to invalid token'
+                    'message'   =>  'Unable to process your request due to non availability of token'
                 ], 401);
             }
-        } else {
-            return response()->json([
-                'error'     =>  true,
-                'message'   =>  'Unable to process your request due to non availability of token'
-            ], 401);
+
+        }else{
+            if ($state_code) {
+                $district_list = District::with('state:state_id_pk,state_name')->where('state_id_fk', $state_code)->orderBy('d_id', 'DESC')->get();
+            } else {
+                $district_list = District::with('state:state_id_pk,state_name')->orderBy('d_id', 'DESC')->get();
+            }
+            if (sizeof($district_list) > 0) {
+                $reponse = array(
+                    'error'     =>  false,
+                    'message'   =>  'District found',
+                    'count'     =>   sizeof($district_list),
+                    'districts'  =>  DistrictResource::collection($district_list)
+                );
+                return response(json_encode($reponse), 200);
+            } else {
+                $reponse = array(
+                    'error'     =>  true,
+                    'message'   =>  'No district available'
+                );
+                return response(json_encode($reponse), 404);
+            }
+
         }
+        
+    }
+    public function allStates(Request $request,$type=null)
+    {  
+        if($type=null){
+            if ($request->header('token')) {
+                $now    =   date('Y-m-d H:i:s');
+                $token_check = Token::where('t_token', '=', $request->header('token'))->where('t_expired_on', '>=', $now)->first();
+                if ($token_check) {  // check the token is expire or not
+                    $user_id = $token_check->t_user_id;
+                    $user_data = User::select('u_id', 'u_ref', 'u_role_id')->where('u_id', $user_id)->first();
+
+                    $role_url_access_id = DB::table('wbscte_other_diploma_auth_roles_permissions')->where('rp_role_id', $user_data->u_role_id)->pluck('rp_url_id');
+
+                    if (sizeof($role_url_access_id) > 0) {
+
+                        $urls = DB::table('wbscte_other_diploma_auth_urls')->where('url_visible', 1)->whereIn('url_id', $role_url_access_id)->get()->toArray();
+
+                        $url_data = array_column($urls, 'url_name');
+                        if (in_array('state-list', $url_data)) { //check url has permission or not
+                            $state_list = State::select('state_id_pk', 'state_name')->where('active_status', '1')->orderBy('state_id_pk', 'DESC')->get();
+                            if (sizeof($state_list) > 0) {
+                                $reponse = array(
+                                    'error'     =>  false,
+                                    'message'   =>  'State found',
+                                    'count'     =>   sizeof($state_list),
+                                    'states'    =>  StateResource::collection($state_list)
+                                );
+                                return response(json_encode($reponse), 200);
+                            } else {
+                                $reponse = array(
+                                    'error'     =>  true,
+                                    'message'   =>  'No state available'
+                                );
+                                return response(json_encode($reponse), 404);
+                            }
+                        } else {
+                            return response()->json([
+                                'error'     =>  true,
+                                'message'   =>   "Oops! you don't have sufficient permission"
+                            ], 403);
+                        }
+                    } else {
+                        return response()->json([
+                            'error'     =>  true,
+                            'message'   =>   "Oops! you don't have sufficient permission"
+                        ], 403);
+                    }
+                } else {
+                    return response()->json([
+                        'error'     =>  true,
+                        'message'   =>  'Unable to process your request due to invalid token'
+                    ], 401);
+                }
+            } else {
+                return response()->json([
+                    'error'     =>  true,
+                    'message'   =>  'Unable to process your request due to non availability of token'
+                ], 401);
+            }
+
+        }else{
+            $state_list = State::select('state_id_pk', 'state_name')->where('active_status', '1')->orderBy('state_id_pk', 'DESC')->get();
+            if (sizeof($state_list) > 0) {
+                $reponse = array(
+                    'error'     =>  false,
+                    'message'   =>  'State found',
+                    'count'     =>   sizeof($state_list),
+                    'states'    =>  StateResource::collection($state_list)
+                );
+                return response(json_encode($reponse), 200);
+            } else {
+                $reponse = array(
+                    'error'     =>  true,
+                    'message'   =>  'No state available'
+                );
+                return response(json_encode($reponse), 404);
+            }
+        }
+        
+    }
+    public function allSubdivisions(Request $request, $dist_id = null,$type=null)
+    {
+        if($type=null){
+            if ($request->header('token')) {
+                $now    =   date('Y-m-d H:i:s');
+                $token_check = Token::where('t_token', '=', $request->header('token'))->where('t_expired_on', '>=', $now)->first();
+                if ($token_check) {  // check the token is expire or not
+                    $user_id = $token_check->t_user_id;
+                    $user_data = User::select('u_id', 'u_ref', 'u_role_id')->where('u_id', $user_id)->first();
+                    $role_url_access_id = DB::table('wbscte_other_diploma_auth_roles_permissions')->where('rp_role_id', $user_data->u_role_id)->pluck('rp_url_id');
+    
+                    if (sizeof($role_url_access_id) > 0) {
+                        $urls = DB::table('wbscte_other_diploma_auth_urls')->where('url_visible', 1)->whereIn('url_id', $role_url_access_id)->get()->toArray();
+                        $url_data = array_column($urls, 'url_name');
+                        if (in_array('district-list', $url_data)) { //check url has permission or not
+                            if ($dist_id) {
+                                $subdivision_list = Subdivision::with('district:d_id,d_name')->where('active_status', '1')->where('district_id', $dist_id)->orderBy('id', 'DESC')->get();
+                            } else {
+                                $subdivision_list = Subdivision::with('district:d_id,d_name')->where('active_status', '1')->orderBy('id', 'DESC')->get();
+                            }
+                            if (sizeof($subdivision_list) > 0) {
+                                $reponse = array(
+                                    'error'     =>  false,
+                                    'message'   =>  'subdivision found',
+                                    'count'     =>   sizeof($subdivision_list),
+                                    'subdivisions'  =>  SubdivisionResource::collection($subdivision_list)
+                                );
+                                return response(json_encode($reponse), 200);
+                            } else {
+                                $reponse = array(
+                                    'error'     =>  true,
+                                    'message'   =>  'No subdivision available'
+                                );
+                                return response(json_encode($reponse), 404);
+                            }
+                        } else {
+                            return response()->json([
+                                'error'     =>  true,
+                                'message'   =>   "Oops! you don't have sufficient permission"
+                            ], 403);
+                        }
+                    } else {
+                        return response()->json([
+                            'error'     =>  true,
+                            'message'   =>   "Oops! you don't have sufficient permission"
+                        ], 403);
+                    }
+                } else {
+                    return response()->json([
+                        'error'     =>  true,
+                        'message'   =>  'Unable to process your request due to invalid token'
+                    ], 401);
+                }
+            } else {
+                return response()->json([
+                    'error'     =>  true,
+                    'message'   =>  'Unable to process your request due to non availability of token'
+                ], 401);
+            }
+
+        }else{
+            if ($dist_id) {
+                $subdivision_list = Subdivision::with('district:d_id,d_name')->where('active_status', '1')->where('district_id', $dist_id)->orderBy('id', 'DESC')->get();
+            } else {
+                $subdivision_list = Subdivision::with('district:d_id,d_name')->where('active_status', '1')->orderBy('id', 'DESC')->get();
+            }
+            if (sizeof($subdivision_list) > 0) {
+                $reponse = array(
+                    'error'     =>  false,
+                    'message'   =>  'subdivision found',
+                    'count'     =>   sizeof($subdivision_list),
+                    'subdivisions'  =>  SubdivisionResource::collection($subdivision_list)
+                );
+                return response(json_encode($reponse), 200);
+            } else {
+                $reponse = array(
+                    'error'     =>  true,
+                    'message'   =>  'No subdivision available'
+                );
+                return response(json_encode($reponse), 404);
+            }
+
+        }
+        
+
     }
 
     //Institute List
-    public function allInstList(Request $request)
+    // public function allInstList(Request $request,$type=null)
+    // {
+    //     if($type=null){
+    //         if ($request->header('token')) {
+    //             $now    =   date('Y-m-d H:i:s');
+    //             $stream    =   $request->stream;
+    //             $token_check = Token::where('t_token', '=', $request->header('token'))->where('t_expired_on', '>=', $now)->first();
+    //             if ($token_check) {  // check the token is expire or not
+    //                 $user_id = $token_check->t_user_id;
+    //                 $user_role = $request->role_id;
+    //                 if (!empty($user_role)) {
+    //                     $role_url_access_id = DB::table('pharmacy_auth_roles_permissions')->where('rp_role_id', $user_role)->pluck('rp_url_id');
+    //                 } else {
+    //                     $role_url_access_id = DB::table('pharmacy_auth_roles_permissions')->where('rp_role_id', 2)->pluck('rp_url_id');
+    //                 }
+    
+    //                 if (sizeof($role_url_access_id) > 0) {
+    //                     $urls = DB::table('pharmacy_auth_urls')->where('url_visible', 1)->whereIn('url_id', $role_url_access_id)->get()->toArray();
+    //                     $url_data = array_column($urls, 'url_name');
+    
+    //                     if (in_array('institute-stream-wise', $url_data)) { //check url has permission or not
+    //                         $inst_res = null;
+    //                         $res = null;
+    
+    //                         if ($user_role == 2) {   //if student
+    //                             $inst_list = DB::table('alloted_admitted_seat_master as sm')
+    //                                 ->join('institute_master as im', 'im.i_code', '=', 'sm.sm_inst_code')
+    //                                 ->select([
+    //                                     'im.i_id as institute_id',
+    //                                     'sm.sm_inst_code as institute_code',
+    //                                     'im.i_name as institute_name',
+    //                                     'im.i_type as institute_type',
+    //                                 ])
+    //                                 ->distinct()
+    //                                 ->where('im.is_active', 1);
+    //                             //->whereRaw('(sqogen + sqosc + sqost + sqpwd + tfw) > 0');
+    
+    //                             if (!empty($stream)) {
+    //                                 $inst_list->whereIn('i_code', $request->inst_codes);
+    //                             }
+    //                             $inst_res = $inst_list->orderBy('i_name', 'ASC')->get();
+    //                             $res = $inst_res;
+    //                         } else {
+    //                             if (!empty($stream)) {
+    //                                 $inst_codes = DB::table('seat_master')->where('sm_trade_code', $stream)->pluck('sm_inst_code');
+    //                             }
+    
+    //                             $inst_list = Institute::where('is_active',  1);
+    
+    //                             if (!empty($stream)) {
+    //                                 $inst_list->whereIn('i_code', $inst_codes);
+    //                             }
+    //                             $inst_res = $inst_list->orderBy('i_name', 'ASC')->get();
+    //                             $res = InstituteResource::collection($inst_res);
+    //                         }
+    
+    //                         if (sizeof($inst_res) > 0) {
+    //                             $reponse = array(
+    //                                 'error'     =>  false,
+    //                                 'message'   =>  'Institute found',
+    //                                 'count'     =>   sizeof($inst_res),
+    //                                 'instituteList'   =>  $res
+    //                             );
+    //                             return response(json_encode($reponse), 200);
+    //                         } else {
+    //                             $reponse = array(
+    //                                 'error'     =>  true,
+    //                                 'message'   =>  'No data found'
+    //                             );
+    //                             return response(json_encode($reponse), 200);
+    //                         }
+    //                     } else {
+    //                         return response()->json([
+    //                             'error'     =>  true,
+    //                             'message'   =>   "Oops! you don't have sufficient permission"
+    //                         ], 401);
+    //                     }
+    //                 } else {
+    //                     return response()->json([
+    //                         'error'     =>  true,
+    //                         'message'   =>   "Oops! you don't have sufficient permission"
+    //                     ], 401);
+    //                 }
+    //             } else {
+    //                 return response()->json([
+    //                     'error'     =>  true,
+    //                     'message'   =>  'Unable to process your request due to invalid token'
+    //                 ], 401);
+    //             }
+    //         } else {
+    //             return response()->json([
+    //                 'error'     =>  true,
+    //                 'message'   =>  'Unable to process your request due to non availability of token'
+    //             ], 401);
+    //         }
+    //     }
+    //     else{
+    //         if (!empty($stream)) {
+    //             $inst_list->whereIn('i_code', $inst_codes);
+    //         }
+    //         $inst_res = $inst_list->orderBy('i_name', 'ASC')->get();
+    //         $res = InstituteResource::collection($inst_res);
+    //          if (sizeof($inst_res) > 0) {
+    //                             $reponse = array(
+    //                                 'error'     =>  false,
+    //                                 'message'   =>  'Institute found',
+    //                                 'count'     =>   sizeof($inst_res),
+    //                                 'instituteList'   =>  $res
+    //                             );
+    //                             return response(json_encode($reponse), 200);
+    //                         } else {
+    //                             $reponse = array(
+    //                                 'error'     =>  true,
+    //                                 'message'   =>  'No data found'
+    //                             );
+    //                             return response(json_encode($reponse), 200);
+    //                         }
+
+    //     }
+    // }
+    public function allInstList(Request $request, $type = null)
     {
-        if ($request->header('token')) {
-            $now    =   date('Y-m-d H:i:s');
-            $stream    =   $request->stream;
-            $token_check = Token::where('t_token', '=', $request->header('token'))->where('t_expired_on', '>=', $now)->first();
-            if ($token_check) {  // check the token is expire or not
-                $user_id = $token_check->t_user_id;
-                $user_role = $request->role_id;
-                if (!empty($user_role)) {
-                    $role_url_access_id = DB::table('pharmacy_auth_roles_permissions')->where('rp_role_id', $user_role)->pluck('rp_url_id');
-                } else {
-                    $role_url_access_id = DB::table('pharmacy_auth_roles_permissions')->where('rp_role_id', 2)->pluck('rp_url_id');
-                }
+        if ($type === null) {
+            if ($request->header('token')) {
+                $now = now();
+                $stream = $request->stream;
 
-                if (sizeof($role_url_access_id) > 0) {
-                    $urls = DB::table('pharmacy_auth_urls')->where('url_visible', 1)->whereIn('url_id', $role_url_access_id)->get()->toArray();
-                    $url_data = array_column($urls, 'url_name');
+                $token_check = Token::where('t_token', $request->header('token'))
+                    ->where('t_expired_on', '>=', $now)
+                    ->first();
 
-                    if (in_array('institute-stream-wise', $url_data)) { //check url has permission or not
-                        $inst_res = null;
-                        $res = null;
+                if ($token_check) {
+                    $user_id = $token_check->t_user_id;
+                    $user_role = $request->role_id ?? 2;
 
-                        if ($user_role == 2) {   //if student
-                            $inst_list = DB::table('alloted_admitted_seat_master as sm')
-                                ->join('institute_master as im', 'im.i_code', '=', 'sm.sm_inst_code')
-                                ->select([
-                                    'im.i_id as institute_id',
-                                    'sm.sm_inst_code as institute_code',
-                                    'im.i_name as institute_name',
-                                    'im.i_type as institute_type',
-                                ])
-                                ->distinct()
-                                ->where('im.is_active', 1);
-                            //->whereRaw('(sqogen + sqosc + sqost + sqpwd + tfw) > 0');
+                    $role_url_access_id = DB::table('pharmacy_auth_roles_permissions')
+                        ->where('rp_role_id', $user_role)
+                        ->pluck('rp_url_id');
 
-                            if (!empty($stream)) {
-                                $inst_list->whereIn('i_code', $request->inst_codes);
+                    if ($role_url_access_id->isNotEmpty()) {
+                        $urls = DB::table('pharmacy_auth_urls')
+                            ->where('url_visible', 1)
+                            ->whereIn('url_id', $role_url_access_id)
+                            ->pluck('url_name')
+                            ->toArray();
+
+                        if (in_array('institute-stream-wise', $urls)) {
+                            $inst_res = collect();
+                            $res = null;
+
+                            if ($user_role == 2) { // Student
+                                $inst_list = DB::table('alloted_admitted_seat_master as sm')
+                                    ->join('institute_master as im', 'im.i_code', '=', 'sm.sm_inst_code')
+                                    ->select([
+                                        'im.i_id as institute_id',
+                                        'sm.sm_inst_code as institute_code',
+                                        'im.i_name as institute_name',
+                                        'im.i_type as institute_type',
+                                    ])
+                                    ->distinct()
+                                    ->where('im.is_active', 1);
+
+                                if (!empty($stream)) {
+                                    $inst_list->whereIn('im.i_code', $request->inst_codes);
+                                }
+
+                                $inst_res = $inst_list->orderBy('im.i_name', 'ASC')->get();
+                                $res = $inst_res;
+                            } else { // Other roles
+                                $inst_list = Institute::where('is_active', 1);
+
+                                if (!empty($stream)) {
+                                    $inst_codes = DB::table('seat_master')
+                                        ->where('sm_trade_code', $stream)
+                                        ->pluck('sm_inst_code');
+
+                                    $inst_list->whereIn('i_code', $inst_codes);
+                                }
+
+                                $inst_res = $inst_list->orderBy('i_name', 'ASC')->get();
+                                $res = InstituteResource::collection($inst_res);
                             }
-                            $inst_res = $inst_list->orderBy('i_name', 'ASC')->get();
-                            $res = $inst_res;
+
+                            return response()->json([
+                                'error' => $inst_res->isEmpty(),
+                                'message' => $inst_res->isNotEmpty() ? 'Institute found' : 'No data found',
+                                'count' => $inst_res->count(),
+                                'instituteList' => $res
+                            ]);
                         } else {
-                            if (!empty($stream)) {
-                                $inst_codes = DB::table('seat_master')->where('sm_trade_code', $stream)->pluck('sm_inst_code');
-                            }
-
-                            $inst_list = Institute::where('is_active',  1);
-
-                            if (!empty($stream)) {
-                                $inst_list->whereIn('i_code', $inst_codes);
-                            }
-                            $inst_res = $inst_list->orderBy('i_name', 'ASC')->get();
-                            $res = InstituteResource::collection($inst_res);
-                        }
-
-                        if (sizeof($inst_res) > 0) {
-                            $reponse = array(
-                                'error'     =>  false,
-                                'message'   =>  'Institute found',
-                                'count'     =>   sizeof($inst_res),
-                                'instituteList'   =>  $res
-                            );
-                            return response(json_encode($reponse), 200);
-                        } else {
-                            $reponse = array(
-                                'error'     =>  true,
-                                'message'   =>  'No data found'
-                            );
-                            return response(json_encode($reponse), 200);
+                            return response()->json([
+                                'error' => true,
+                                'message' => "Oops! you don't have sufficient permission"
+                            ], 401);
                         }
                     } else {
                         return response()->json([
-                            'error'     =>  true,
-                            'message'   =>   "Oops! you don't have sufficient permission"
+                            'error' => true,
+                            'message' => "Oops! you don't have sufficient permission"
                         ], 401);
                     }
                 } else {
                     return response()->json([
-                        'error'     =>  true,
-                        'message'   =>   "Oops! you don't have sufficient permission"
+                        'error' => true,
+                        'message' => 'Invalid token'
                     ], 401);
                 }
             } else {
                 return response()->json([
-                    'error'     =>  true,
-                    'message'   =>  'Unable to process your request due to invalid token'
+                    'error' => true,
+                    'message' => 'Token not provided'
                 ], 401);
             }
         } else {
+            $inst_list = Institute::where('is_active', 1);
+
+            if (!empty($request->stream)) {
+                $inst_codes = DB::table('seat_master')
+                    ->where('sm_trade_code', $request->stream)
+                    ->pluck('sm_inst_code');
+
+                $inst_list->whereIn('i_code', $inst_codes);
+            }
+
+            $inst_res = $inst_list->orderBy('i_name', 'ASC')->get();
+            $res = InstituteResource::collection($inst_res);
+
             return response()->json([
-                'error'     =>  true,
-                'message'   =>  'Unable to process your request due to non availability of token'
-            ], 401);
+                'error' => $inst_res->isEmpty(),
+                'message' => $inst_res->isNotEmpty() ? 'Institute found' : 'No data found',
+                'count' => $inst_res->count(),
+                'instituteList' => $res
+            ]);
         }
     }
+
 
     //Stream List
     public function streamList(Request $request)
@@ -1345,263 +1766,6 @@ class CommonController extends Controller
             ], 401);
         }
     }
-    public function registerstudent(Request $request)
-    {
-        try{
-            $validated = Validator::make($request->all(),[
-                'student_first_name' => ['required'],
-                'student_middle_name' => ['nullable'],
-                'student_last_name' => ['required'],
-                'student_father_name' => ['required'],
-                'student_mother_name' => ['required'],
-                'student_dob' => ['required'],
-                'student_aadhar_no' => ['required', 'unique:pharmacy_register_student,s_aadhar_original'],
-                'student_phone' => ['required', 'digits:10', 'unique:pharmacy_register_student,s_phone'],
-                'student_email' => ['required', 'email', 'unique:pharmacy_register_student,s_email'],
-                'student_gender' => ['required'],
-                'student_religion' => ['required'],
-                'student_caste'=>['required'],
-                's_tfw' => ['required'],
-                's_ews' => ['required'],
-                's_llq' => ['required'],
-                's_exsm' => ['required'],
-                's_pwd' => ['required'],
-                's_gen_rank' => ['required'],
-                's_sc_rank' => ['required'],
-                's_st_rank' => ['required'],
-                's_obca_rank' => ['required'],
-                's_obcb_rank' => ['required'],
-                's_tfw_rank' => ['required'],
-                's_ews_rank' => ['required'],
-                's_llq_rank' => ['required'],
-                's_exsm_rank' => ['required'],
-                's_pwd_rank' => ['required'],
-                'student_photo' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
-                'student_sign' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
-                'student_home_dist' => ['required'],
-                'student_schooling_dist' => ['required'],
-                'student_state_id' => ['required'],
-                'student_alloted_category' => ['required'],
-                'student_alloted_round' => ['required'],
-                'student_choise_id' => ['required'],
-                'student_trade_code' => ['required'],
-                'student_inst_code' => ['required'],
-                'student_eligible_category' => ['required'],
-                'student_auto_rejected_round' => ['required'],
-                'student_rejected_by' => ['required'],
-                'student_address' => ['required'],
-                'student_police_station' => ['required'],
-                'student_post_office' => ['required'],
-                'student_pin_no' => ['required'],
-                'is_married' => ['required'],
-                'is_kanyashree' => ['required'],
-                's_admited_status' => ['required'],
-                's_auto_reject' => ['required'],
-                's_seat_block' => ['required'],
-                'last_round_adm_status' => ['required'],
-                'is_profile_updated' => ['required'],
-                'is_choice_fill_up' => ['required'],
-                'is_lock_manual' => ['required'],
-                'is_lock_auto' => ['required'],
-                'is_payment' => ['required'],
-                'is_choice_downloaded' => ['required'],
-                'is_upgrade_payment' => ['required'],
-                'is_allotment_accept' => ['required'],
-                'is_alloted' => ['required'],
-                'is_upgrade' => ['required'],
-                's_remarks' => ['required'],
-                'is_active' => ['required'],
-                's_uuid' => ['required'],
-                'is_registration_payment' => ['required'],
-                'is_registration_verified' => ['required'],
-                'physic_marks'=>['required'],
-                'chemistry_marks' => ['required'],
-                'biology_marks' => ['required'],
-                'mathematics_marks' => ['required'],
-                'exam_elgb_code'=>['required']
-            ]);
-
-            if($validated->fails()){
-                return response()->json([
-                    'error' => true,
-                    'message' => $validated->errors()->first()
-                ], 422);   
-            }
-
-            $currentDateTime = date('Y-m-d H:i:s');
-            $schedule = Schedule::where('sch_event', 'APPLICATION')
-                ->where('sch_round', 1)
-                ->first();
-            if (!$schedule || $currentDateTime < $schedule->sch_start_dt || $currentDateTime > $schedule->sch_end_dt) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Your date is expired. You can no longer submit the form.'
-                ], 400);
-            }
-            $year = date('Y');
-            $lastStudent = RegisterStudent::latest('s_id')->first();
-            if ($lastStudent && preg_match('/PHARMA' . $year . '(\d+)/', $lastStudent->s_appl_form_num, $matches)) {
-                $lastNumber = (int) $matches[1];
-                $nextNumber = $lastNumber + 1;
-            } else {
-                $nextNumber = 1;
-            }
-            // Generate the new application form number
-            $s_appl_form_num = 'PHARMA' . $year . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
-            $dob = new DateTime($request->student_dob);
-            $currentYear = date('Y');
-            $requiredDate = new DateTime("31-12-$currentYear");
-            $age = $dob->diff($requiredDate)->y;
-            if ($age < 17) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The candidate must be at least 17 years old on or before 31st December of this year.'
-                ], 400);
-            }
-            
-            $fullAadhar = $request->student_aadhar_no;
-            $firstPart = substr($fullAadhar, 0, -4);   // First part to encrypt
-            $last4 = substr($fullAadhar, -4);          // Last 4 digits
-            $encryptedPart = hash_hmac('sha256', $firstPart, env('APP_KEY'));
-            $shortEncrypted = substr($encryptedPart, 0, 27);
-            $randomChar = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 1);
-            $maskedAadhar = $shortEncrypted . $randomChar . $last4;
-
-            $uuid = $request->s_uuid;
-            $firstPart = substr($uuid, 0, -4);   // Encryptable part
-            $last4 = substr($uuid, -4);          // Last 4 digits
-            $encryptedPart = hash_hmac('sha256', $firstPart, env('APP_KEY'));
-            $shortEncrypted = substr($encryptedPart, 0, 27);
-            $randomChar = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 1);
-            $maskedUUID = $shortEncrypted . $randomChar . $last4;
-
-            if(RegisterStudent::where('s_uuid',$maskedUUID)->exists()){
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This UUID is already registered.'
-                ], 409);
-            
-            }
-            $student_photo = $request->file('student_photo')->store('uploads', 'public');
-            $student_sign = $request->file('student_sign')->store('uploads', 'public');
-            $register = RegisterStudent::create([
-                's_appl_form_num'=>$s_appl_form_num,
-                's_first_name'=>trim($request->student_first_name),
-                's_middle_name'=>trim($request->student_middle_name),
-                's_last_name'=>trim($request->student_last_name),
-                's_candidate_name'=>trim($request->student_first_name) 
-                . ($request->student_middle_name ? ' ' . trim($request->student_middle_name) : '') 
-                . ' ' . trim($request->student_last_name),
-                's_father_name'=>trim($request->student_father_name),
-                's_mother_name'=>trim($request->student_mother_name),
-                's_dob'=>$request->student_dob,
-                's_aadhar_no'=> $maskedAadhar,
-                's_aadhar_original'=>$fullAadhar,
-                's_phone'=>trim($request->student_phone),
-                's_email'=>trim($request->student_email),
-                's_gender'=>$request->student_gender,
-                's_religion'=>$request->student_religion,
-                's_caste'=>$request->student_caste,
-                's_tfw'=>$request->s_tfw,
-                's_ews'=>$request->s_ews,
-                's_llq_rank'=>$request->s_llq_rank,
-                's_llq'=>$request->s_llq,
-                's_exsm'=>$request->s_exsm,
-                's_pwd'=>$request->s_pwd,
-                's_gen_rank'=>$request->s_gen_rank,
-                's_sc_rank'=>$request->s_sc_rank,
-                's_st_rank'=>$request->s_st_rank,
-                's_obca_rank'=>$request->s_obca_rank,
-                's_obcb_rank'=>$request->s_obcb_rank,
-                's_tfw_rank'=>$request->s_tfw_rank,
-                's_ews_rank'=>$request->s_ews_rank,
-                's_exsm_rank'=>$request->s_exsm_rank,
-                's_pwd_rank'=>$request->s_pwd_rank,
-                's_photo' => $student_photo,
-                's_sign' => $student_sign,
-                // 's_home_district'=>$request->student_home_dist,
-                's_home_district'=> trim($request->student_home_dist),
-                's_schooling_district'=>trim($request->student_schooling_dist),
-                's_state_id'=>$request->student_state_id,
-                's_alloted_category'=>$request->student_alloted_category,
-                's_alloted_round'=>$request->student_alloted_round,
-                's_choice_id'=>$request->student_choise_id,
-                's_trade_code'=>$request->student_trade_code,
-                's_inst_code'=>$request->student_inst_code,
-                's_eligible_category'=>$request->student_eligible_category,
-                's_auto_reject_round'=>$request->student_auto_rejected_round,
-                's_rejected_by'=>$request->student_rejected_by,
-                // 'address'=>$request->student_address,
-                'address'=>trim($request->student_address),
-                'ps'=>$request->student_police_station,
-                'po'=>$request->student_post_office,
-                'pin'=>trim($request->student_pin_no),
-                'is_married'=>$request->is_married,
-                'is_kanyashree'=>$request->is_kanyashree,
-                // 'is_kanyashree' => isset($is_kanyashree) ? $is_kanyashree : null,
-                's_admited_status'=>$request->s_admited_status,
-                's_auto_reject'=>$request->s_auto_reject,
-                's_seat_block'=>$request->s_seat_block,
-                'last_round_adm_status'=>$request->last_round_adm_status,
-                'is_profile_updated'=>$request->is_profile_updated,
-                'is_choice_fill_up'=>$request->is_choice_fill_up,
-                'is_lock_manual'=>$request->is_lock_manual,
-                'is_lock_auto'=>$request->is_lock_auto,
-                'is_payment'=>$request->is_payment,
-                'is_choice_downloaded'=>$request->is_choice_downloaded,
-                'is_upgrade_payment'=>$request->is_upgrade_payment,
-                'is_allotment_accept'=>$request->is_allotment_accept,
-                'is_alloted'=>$request->is_alloted,
-                'is_upgrade'=>$request->is_upgrade,
-                's_remarks'=>$request->s_remarks,
-                'is_active'=>$request->is_active,
-                's_uuid'=>$maskedUUID,
-                'is_registration_payment'=>$request->is_registration_payment,
-                'is_registration_verified'=>$request->is_registration_verified,
-                'physic_marks'=>$request->physic_marks,
-                'chemistry_marks'=>$request->chemistry_marks,
-                'biology_marks'=>$request->biology_marks,
-                'mathematics_marks'=>$request->mathematics_marks, 
-            ]);
-
-            if (!$register) {
-                return response()->json(['success' => false, 'message' => 'Failed to insert data.'], 500);
-            }   
-            
-            $eligibility = PharmacyAppl_ElgbExam::create([
-                'exam_appl_form_num' => $s_appl_form_num,
-                'exam_elgb_code' => $request->exam_elgb_code
-            ]);
-
-            if (!$eligibility) {
-                DB::rollBack();
-                return response()->json(['success' => false, 'message' => 'Failed to insert eligibility data.'], 500);
-            }
-
-            DB::commit();
-            return response()->json([
-                'success' => true,
-                'message' => 'Form submitted successfully!',
-                'data' => [
-                    'student' => $register,
-                    'eligibility' => $eligibility
-                ]
-            ], 201);
-
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors()
-            ], 422);
-        } catch (Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
     public function eligibility(Request $request)
     {
         $course_code=$request->course_code;

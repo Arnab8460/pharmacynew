@@ -11,4 +11,10 @@ class District extends Model
     public $timestamps      =   false;
 
     protected $guarded = [];
+    public function state()
+    {
+        return $this->hasOne('App\Models\State', "state_id_pk", "state_id_fk")->withDefault(function () {
+            return new State();
+        });
+    }
 }
