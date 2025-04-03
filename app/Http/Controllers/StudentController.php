@@ -25,6 +25,7 @@ use DateTime;
 use App\Models\PharmacyEligiblity;
 use App\Http\Resources\EligibilityResource;
 use App\Models\PharmacyAppl_ElgbExam;
+use Illuminate\Support\Facades\URL;
 
 class StudentController extends Controller
 {
@@ -174,7 +175,12 @@ class StudentController extends Controller
 
         try {
             $student = RegisterStudent::where('s_appl_form_num', $request->form_no)->first();
-
+            if (!$student) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Student record not found!'
+                ], 404);
+            }
             if ($request->is_updated) {
                 $request->validate([
                     'first_name' => ['required'],
@@ -192,7 +198,20 @@ class StudentController extends Controller
                     'is_married' => ['nullable'],
                     'is_kanyashree' => ['nullable'],
                     'is_pwd' => ['nullable'],
+                    's_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+                    's_sign' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
                 ]);
+                if ($request->hasFile('s_photo')) {
+                    $photoPath = $request->file('s_photo')->store('uploads', 'public');
+                } else {
+                    $photoPath = $student->s_photo; // Keep existing photo
+                }
+        
+                if ($request->hasFile('s_sign')) {
+                    $signPath = $request->file('s_sign')->store('uploads', 'public');
+                } else {
+                    $signPath = $student->s_sign; // Keep existing sign
+                }
 
                 $student->update([
                     's_first_name' => $request->first_name,
@@ -208,10 +227,15 @@ class StudentController extends Controller
                     'ps' => $request->ps,
                     'po' => $request->po,
                     'pin' => $request->pin,
-                    'is_married' => $request->is_married,
-                    'is_kanyashree' => $request->is_kanyashree,
-                    's_pwd' => $request->is_pwd,
+                    // 'is_married' => $request->is_married,
+                    // 'is_kanyashree' => $request->is_kanyashree,
+                    // 's_pwd' => $request->is_pwd,
+                    'is_married' => $request->is_married ? 1 : 0,
+                    'is_kanyashree' => $request->is_kanyashree ? 1 : 0,
+                    's_pwd' => $request->is_pwd ? 1 : 0,
                     'is_profile_updated' => true,
+                    's_photo' => $photoPath,
+                    's_sign' => $signPath,
                 ]);
 
                 auditTrail($student->s_id, "{$student->s_candidate_name} updated details");
@@ -226,7 +250,7 @@ class StudentController extends Controller
             }
 
             $student = RegisterStudent::where('s_appl_form_num', $request->form_no)->first();
-
+    
             $rank_data = [];
             $userRank = $student;
 
@@ -265,7 +289,7 @@ class StudentController extends Controller
                 'profile_update'   => (bool)$student->is_profile_updated,
                 'choice_sehedule' => ($student->is_profile_updated == 1) && $choice_sehedule,
                 'allotment_schedule' => ($student->is_choice_fill_up == 1) && ($student->is_lock_manual == 1) && $allotment_schedule,
-                'user' => json_encode([
+                'user' =>[
                     's_id' => $student->s_id,
                     's_uuid' => $student->s_uuid,
                     's_ref' => md5($student->s_id),
@@ -297,7 +321,8 @@ class StudentController extends Controller
                     'is_choice_fill_up' => $student->is_choice_fill_up,
                     'is_payment' => $student->is_payment,
                     'is_upgrade' => $student->is_upgrade,
-                    's_photo' => $student->s_photo,
+                    's_photo'=>URL::to("storage/{$student->s_photo}"),
+                    's_sign'=>URL::to("storage/{$student->s_sign}"),
                     's_home_district' => !is_null($student->s_home_district) ? $student->s_home_district : "",
                     's_schooling_district' => !is_null($student->s_schooling_district) ? $student->s_schooling_district : "",
                     's_state_id' => $student->s_state_id,
@@ -316,7 +341,7 @@ class StudentController extends Controller
                     'is_married' => (bool)$student->is_married,
                     'is_kanyashree' => (bool)$student->is_kanyashree,
                     'role_id' => 2,
-                ]),
+                ],
             ]);
         } catch (Exception $e) {
             return response()->json([
@@ -1687,15 +1712,10 @@ class StudentController extends Controller
                     'message' => 'The candidate must be at least 17 years old on or before 31st December of this year.'
                 ], 400);
             }
-           
+
             $fullAadhar = $request->student_aadhar_no;
-            $firstPart = substr($fullAadhar, 0, -4);   // First part to encrypt
-            $last4 = substr($fullAadhar, -4);          // Last 4 digits
-            $encryptedPart = hash_hmac('sha256', $firstPart, env('APP_KEY'));
-            $shortEncrypted = substr($encryptedPart, 0, 27);
-            $randomChar = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 1);
-            $maskedAadhar = $shortEncrypted . $randomChar . $last4;
- 
+            $last4 = substr($fullAadhar, -4); // Last 4 digits
+            $encryptedLast4 = encryptHEXFormat($last4); // Encrypt last 4 digits
             $student_photo = $request->file('student_photo')->store('uploads', 'public');
             $student_sign = $request->file('student_sign')->store('uploads', 'public');
             $uuid = Str::uuid()->toString();
@@ -1712,7 +1732,7 @@ class StudentController extends Controller
                 's_mother_name'=>trim($request->student_mother_name),
                 'student_guardian_name'=>trim($request->student_guardian_name),
                 's_dob'=>$request->student_dob,
-                's_aadhar_no'=> $maskedAadhar,
+                's_aadhar_no'=> $encryptedLast4,
                 's_aadhar_original'=>$fullAadhar,
                 's_phone'=>trim($request->student_phone),
                 's_email'=>trim($request->student_email),
@@ -1757,13 +1777,14 @@ class StudentController extends Controller
                 'po'=>$request->student_post_office,
                 'pin'=>trim($request->student_pin_no),
                 'is_married'=>$request->is_married,
-                'is_kanyashree'=>$request->is_kanyashree,
+                'student_kanyashree_no' => $request->student_kanyashree_no,
+                'is_kanyashree' => ($request->student_kanyashree_no && (strtolower($request->student_gender) == 'female' || strtoupper($request->student_gender) == 'FEMALE')) ? 1 : 0,
                 // 'is_kanyashree' => isset($is_kanyashree) ? $is_kanyashree : null,
                 // 's_admited_status'=>$request->s_admited_status,
                 // 's_auto_reject'=>$request->s_auto_reject,
                 // 's_seat_block'=>$request->s_seat_block,
                 // 'last_round_adm_status'=>$request->last_round_adm_status,
-                // 'is_profile_updated'=>$request->is_profile_updated,
+                'is_profile_updated'=>1,
                 // 'is_choice_fill_up'=>$request->is_choice_fill_up,
                 // 'is_lock_manual'=>$request->is_lock_manual,
                 // 'is_lock_auto'=>$request->is_lock_auto,

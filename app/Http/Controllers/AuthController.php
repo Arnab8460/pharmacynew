@@ -17,6 +17,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Config;
 use App\Http\Resources\SuperUserResource;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\URL;
 
 class AuthController extends Controller
 {
@@ -265,7 +266,8 @@ class AuthController extends Controller
                         'is_choice_fill_up' => $student->is_choice_fill_up,
                         'is_payment' => $student->is_payment,
                         'is_upgrade' => $student->is_upgrade,
-                        's_photo' => $student->s_photo,
+                        's_photo' => URL::to("storage/{$student->s_photo}"),
+                        's_sign' => URL::to("storage/{$student->s_sign}"),
                         's_home_district' => !is_null($student->s_home_district) ? $student->s_home_district : "",
                         's_schooling_district' => !is_null($student->s_schooling_district) ? $student->s_schooling_district : "",
                         's_state_id' => $student->s_state_id,
