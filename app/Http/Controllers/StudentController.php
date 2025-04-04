@@ -26,6 +26,7 @@ use App\Models\PharmacyEligiblity;
 use App\Http\Resources\EligibilityResource;
 use App\Models\PharmacyAppl_ElgbExam;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
@@ -198,21 +199,30 @@ class StudentController extends Controller
                     'is_married' => ['nullable'],
                     'is_kanyashree' => ['nullable'],
                     'is_pwd' => ['nullable'],
-                    's_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
-                    's_sign' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+                    's_photo' => ['nullable', 'mimes:jpeg,png,jpg,pdf', 'max:2048'],
+                    's_sign'  => ['nullable', 'mimes:jpeg,png,jpg,pdf', 'max:2048'],
                 ]);
                 if ($request->hasFile('s_photo')) {
-                    $photoPath = $request->file('s_photo')->store('uploads', 'public');
+                    $time = time();
+                    $imagefilePath = 'uploads';
+                    $extension = $request->file('s_photo')->getClientOriginalExtension();
+                    $imageFileName = "{$request->form_no}_image{$time}.{$extension}";
+                    Storage::disk('public')->put("{$imagefilePath}{$imageFileName}",$request->file('s_photo')->get());
+                    $photoPath = "{$imagefilePath}/{$imageFileName}";
                 } else {
                     $photoPath = $student->s_photo; // Keep existing photo
                 }
         
                 if ($request->hasFile('s_sign')) {
-                    $signPath = $request->file('s_sign')->store('uploads', 'public');
+                    $time = time();
+                    $imagefilePath = 'uploads';
+                    $extension = $request->file('s_sign')->getClientOriginalExtension();
+                    $imageFileName = "{$request->form_no}_sign{$time}.{$extension}";
+                    Storage::disk('public')->put("{$imagefilePath}{$imageFileName}",$request->file('s_sign')->get());
+                    $signPath = "{$imagefilePath}/{$imageFileName}";
                 } else {
                     $signPath = $student->s_sign; // Keep existing sign
                 }
-
                 $student->update([
                     's_first_name' => $request->first_name,
                     's_middle_name' => $request->middle_name,
@@ -1730,8 +1740,27 @@ class StudentController extends Controller
             $fullAadhar = $request->student_aadhar_no;
             $last4 = substr($fullAadhar, -4); // Last 4 digits
             $encryptedLast4 = encryptHEXFormat($last4); // Encrypt last 4 digits
-            $student_photo = $request->file('student_photo')->store('uploads', 'public');
-            $student_sign = $request->file('student_sign')->store('uploads', 'public');
+            if ($request->hasFile('student_photo')) {
+                $time = time();
+                $imagefilePath = 'uploads/';
+                $extension = $request->file('student_photo')->getClientOriginalExtension();
+                $imageFileName = "{$s_appl_form_num}_image{$time}.{$extension}";
+                Storage::disk('public')->put("{$imagefilePath}{$imageFileName}", $request->file('student_photo')->get());
+                $student_photo = "{$imagefilePath}{$imageFileName}";
+            } else {
+                $student_photo = null;
+            }
+            if ($request->hasFile('student_sign')) {
+                $time = time();
+                $imagefilePath = 'uploads/';
+                $extension = $request->file('student_sign')->getClientOriginalExtension(); 
+                $imageFileName = "{$s_appl_form_num}_sign{$time}.{$extension}";
+                Storage::disk('public')->put("{$imagefilePath}{$imageFileName}", $request->file('student_sign')->get());
+                $student_sign = "{$imagefilePath}{$imageFileName}";
+            } else {
+                $student_sign = null;
+            }
+            
             $uuid = Str::uuid()->toString();
             $register = RegisterStudent::create([
                 'student_inst_id'=>$request->student_inst_id,
