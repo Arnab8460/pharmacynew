@@ -1611,11 +1611,28 @@ class StudentController extends Controller
                 'student_citizenship'=>['required'],
                 'student_subdivision'=>['required'],
                 'student_address2'=>['required'],
+                's_pwd' => ['required'],
+                'student_photo' => ['required'],
+                'student_sign' => ['required'],
+                'student_home_dist' => ['required'],
+                'student_state_id' => ['required'],
+                'student_address' => ['required'],
+                'student_pin_no' => ['required'],
+                'is_married' => ['required'],
+                'physic_marks' => ['required', 'numeric', 'min:0'],
+                'chemistry_marks' => ['required', 'numeric', 'min:0'],
+                'biology_marks' => ['required', 'numeric', 'min:0'],
+                'mathematics_marks' => ['required', 'numeric', 'min:0'],
+                'exam_total_marks' => ['required', 'numeric', 'min:1'],
+                'exam_elgb_code'=>['required'],
+                'exam_board'=>['required'],
+                'exam_pass_yr'=>['required'],
+                'exam_result'=>['required'],
+                'obtained_marks' => ['required', 'numeric', 'min:0'],
                 // 's_tfw' => ['required'],
                 // 's_ews' => ['required'],
                 // 's_llq' => ['required'],
                 // 's_exsm' => ['required'],
-                's_pwd' => ['required'],
                 // 's_gen_rank' => ['required'],
                 // 's_sc_rank' => ['required'],
                 // 's_st_rank' => ['required'],
@@ -1626,11 +1643,7 @@ class StudentController extends Controller
                 // 's_llq_rank' => ['required'],
                 // 's_exsm_rank' => ['required'],
                 // 's_pwd_rank' => ['required'],
-                'student_photo' => ['required'],
-                'student_sign' => ['required'],
-                'student_home_dist' => ['required'],
                 // 'student_schooling_dist' => ['required'],
-                'student_state_id' => ['required'],
                 // 'student_alloted_category' => ['required'],
                 // 'student_alloted_round' => ['required'],
                 // 'student_choise_id' => ['required'],
@@ -1639,12 +1652,9 @@ class StudentController extends Controller
                 // 'student_eligible_category' => ['required'],
                 // 'student_auto_rejected_round' => ['required'],
                 // 'student_rejected_by' => ['required'],
-                'student_address' => ['required'],
                 //'student_police_station' => ['required'],
                 //'student_post_office' => ['required'],
-                'student_pin_no' => ['required'],
-                'is_married' => ['required'],
-              //  'is_kanyashree' => ['required'],
+                //  'is_kanyashree' => ['required'],
                 // 's_admited_status' => ['required'],
                 // 's_auto_reject' => ['required'],
                 // 's_seat_block' => ['required'],
@@ -1653,7 +1663,7 @@ class StudentController extends Controller
                 // 'is_choice_fill_up' => ['required'],
                 // 'is_lock_manual' => ['required'],
                 // 'is_lock_auto' => ['required'],
-               // 'is_payment' => ['required'],
+                // 'is_payment' => ['required'],
                 // 'is_choice_downloaded' => ['required'],
                 // 'is_upgrade_payment' => ['required'],
                 // 'is_allotment_accept' => ['required'],
@@ -1662,26 +1672,30 @@ class StudentController extends Controller
                 // 's_remarks' => ['required'],
                 // 'is_active' => ['required'],
                 // 'is_registration_payment' => ['required'],
-                // 'is_registration_verified' => ['required'],
-                'physic_marks'=>['required'],
-                'chemistry_marks' => ['required'],
-                'biology_marks' => ['required'],
-                'mathematics_marks' => ['required'],
-                'exam_elgb_code'=>['required'],
-                'exam_board'=>['required'],
-                'exam_pass_yr'=>['required'],
-                'exam_total_marks'=>['required'],
-                'obtained_marks'=>['required'],
-                'exam_result'=>['required']
+                // 'is_registration_verified' => ['required'],  
             ]);
- 
             if($validated->fails()){
                 return response()->json([
                     'error' => true,
                     'message' => $validated->errors()->first()
                 ], 422);  
             }
- 
+            $expectedObtainedMarks = (int) $request->physic_marks + (int) $request->chemistry_marks + (int) $request->biology_marks + (int) $request->mathematics_marks;
+            $examTotalMarks = (int) $request->exam_total_marks;
+            $obtainedMarks = (int) $request->obtained_marks;
+            if ($obtainedMarks != $expectedObtainedMarks) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Obtained marks must be the sum of these specific subjects.'
+                ], 400);
+            }
+            if ($obtainedMarks > $examTotalMarks) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Obtained marks cannot be greater than total marks.'
+                ], 400);
+            }
+    
             $currentDateTime = date('Y-m-d H:i:s');
             $schedule = Schedule::where('sch_event', 'APPLICATION')
                 ->where('sch_round', 1)
@@ -1742,12 +1756,30 @@ class StudentController extends Controller
                 'student_citizenship'=>$request->student_citizenship,
                 'student_subdivision'=>$request->student_subdivision,
                 'student_address2'=>$request->student_address2,
+                's_pwd'=>$request->s_pwd,
+                's_photo' => $student_photo,
+                's_sign' => $student_sign,
+                's_home_district'=> trim($request->student_home_dist),
+                's_state_id'=>$request->student_state_id,
+                'address'=>trim($request->student_address),
+                'ps'=>$request->student_police_station,
+                'po'=>$request->student_post_office,
+                'pin'=>trim($request->student_pin_no),
+                'is_married'=>$request->is_married,
+                'student_kanyashree_no' => $request->student_kanyashree_no,
+                'is_kanyashree' => ($request->student_kanyashree_no && (strtolower($request->student_gender) == 'female' || strtoupper($request->student_gender) == 'FEMALE')) ? 1 : 0,
+                'is_profile_updated'=>1,
+                'is_active'=> 1,
+                's_uuid' => $uuid,
+                'physic_marks'=>$request->physic_marks,
+                'chemistry_marks'=>$request->chemistry_marks,
+                'biology_marks'=>$request->biology_marks,
+                'mathematics_marks'=>$request->mathematics_marks,
                 // 's_tfw'=>$request->s_tfw,
                 // 's_ews'=>$request->s_ews,
                 // 's_llq_rank'=>$request->s_llq_rank,
                 // 's_llq'=>$request->s_llq,
                 // 's_exsm'=>$request->s_exsm,
-                's_pwd'=>$request->s_pwd,
                 // 's_gen_rank'=>$request->s_gen_rank,
                 // 's_sc_rank'=>$request->s_sc_rank,
                 // 's_st_rank'=>$request->s_st_rank,
@@ -1757,12 +1789,8 @@ class StudentController extends Controller
                 // 's_ews_rank'=>$request->s_ews_rank,
                 // 's_exsm_rank'=>$request->s_exsm_rank,
                 // 's_pwd_rank'=>$request->s_pwd_rank,
-                's_photo' => $student_photo,
-                's_sign' => $student_sign,
                 // 's_home_district'=>$request->student_home_dist,
-                's_home_district'=> trim($request->student_home_dist),
                 // 's_schooling_district'=>trim($request->student_schooling_dist),
-                's_state_id'=>$request->student_state_id,
                 // 's_alloted_category'=>$request->student_alloted_category,
                 // 's_alloted_round'=>$request->student_alloted_round,
                 // 's_choice_id'=>$request->student_choise_id,
@@ -1772,19 +1800,11 @@ class StudentController extends Controller
                 // 's_auto_reject_round'=>$request->student_auto_rejected_round,
                 // 's_rejected_by'=>$request->student_rejected_by,
                 // 'address'=>$request->student_address,
-                'address'=>trim($request->student_address),
-                'ps'=>$request->student_police_station,
-                'po'=>$request->student_post_office,
-                'pin'=>trim($request->student_pin_no),
-                'is_married'=>$request->is_married,
-                'student_kanyashree_no' => $request->student_kanyashree_no,
-                'is_kanyashree' => ($request->student_kanyashree_no && (strtolower($request->student_gender) == 'female' || strtoupper($request->student_gender) == 'FEMALE')) ? 1 : 0,
                 // 'is_kanyashree' => isset($is_kanyashree) ? $is_kanyashree : null,
                 // 's_admited_status'=>$request->s_admited_status,
                 // 's_auto_reject'=>$request->s_auto_reject,
                 // 's_seat_block'=>$request->s_seat_block,
                 // 'last_round_adm_status'=>$request->last_round_adm_status,
-                'is_profile_updated'=>1,
                 // 'is_choice_fill_up'=>$request->is_choice_fill_up,
                 // 'is_lock_manual'=>$request->is_lock_manual,
                 // 'is_lock_auto'=>$request->is_lock_auto,
@@ -1795,14 +1815,8 @@ class StudentController extends Controller
                 // 'is_alloted'=>$request->is_alloted,
                 // 'is_upgrade'=>$request->is_upgrade,
                 // 's_remarks'=>$request->s_remarks,
-                'is_active'=> 1,
-                's_uuid' => $uuid,
-                'is_registration_payment'=>$request->is_registration_payment,
-                'is_registration_verified'=>$request->is_registration_verified,
-                'physic_marks'=>$request->physic_marks,
-                'chemistry_marks'=>$request->chemistry_marks,
-                'biology_marks'=>$request->biology_marks,
-                'mathematics_marks'=>$request->mathematics_marks,
+                // 'is_registration_payment'=>$request->is_registration_payment,
+                // 'is_registration_verified'=>$request->is_registration_verified,  
             ]);
  
             if (!$register) {
